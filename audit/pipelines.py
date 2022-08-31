@@ -27,6 +27,4 @@ class AuditPipeline(object):
         if isinstance(item, ProfileItem):
             self.ProfileItem_exporter.export_item(item)
 
-    def close_spider(self, spider):
-        self.client.close()
 
