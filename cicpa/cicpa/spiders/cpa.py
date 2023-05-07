@@ -1,4 +1,4 @@
-import scrapy
+import scrapy, json
 import requests
 from typing import Optional
 from cicpa.items import CicpaItem
@@ -20,7 +20,7 @@ class CpaSpider(scrapy.Spider):
         url = 'http://acc.mof.gov.cn/searchBfLogin/searchCpaAcct'
         data = {
             'currentPage': '1',
-            'pageSize': '9999999',
+            'pageSize': '999999',
             'cpaStatus': '10',
         }
         r = requests.post(url, data=data)
@@ -33,28 +33,27 @@ class CpaSpider(scrapy.Spider):
         PER_CODE = cpa['CPA_CNO']
         return ASC_GUID, PER_CODE
 
+
     # 从[注册会计师行业管理信息系统](https://cmis.cicpa.org.cn/)获取注册会计师对应的ID
-    def get_cpa_id(self, ASC_GUID, PER_CODE):
+    # 按列表获取注册会计师对应的ID，用ID发起查询
+    def start_requests(self):
+        cpaInstitute = self.get_cpa_institute()
+        cpaList = self.get_cpa_list()
         url = 'https://cmis.cicpa.org.cn/publicQuery/getCpaListByPage'
-        data = {"OFF_NAME":"",
+        for cpa in cpaList:
+            ASC_GUID, PER_CODE = self.get_asc_and_per(cpa, cpaInstitute)
+            data = {"OFF_NAME":"",
                 "ASC_GUID":ASC_GUID,
                 "PER_CODE":PER_CODE,
                 "PER_NAME":"",
                 "pageNow":1,
                 "pageSize":10}
-        r = requests.post(url,json=data)
-        return r.json()['info']['rows'][0]['ID']
+            yield scrapy.Request(url, method="POST", body=json.dumps(data), headers={'Content-Type': 'application/json'}, callback=self.parse_cpa_id)
 
-    # 按列表获取注册会计师对应的ID，用ID发起查询
-    def start_requests(self):
-        cpaInstitute = self.get_cpa_institute()
-        cpaList = self.get_cpa_list()
-        print(len(cpaList))
-        for cpa in cpaList:
-            ASC_GUID, PER_CODE = self.get_asc_and_per(cpa, cpaInstitute)
-            cpaID = self.get_cpa_id(ASC_GUID, PER_CODE)
-            url = f'https://cmis.cicpa.org.cn/publicQuery/getCpaInfo?id={cpaID}'
-            yield scrapy.FormRequest(url, method='POST', callback=self.parse)
+    def parse_cpa_id(self, response):
+        cpaID = response.json()['info']['rows'][0]['ID']
+        url = f'https://cmis.cicpa.org.cn/publicQuery/getCpaInfo?id={cpaID}'
+        yield scrapy.FormRequest(url, method='POST', callback=self.parse)
 
 
     def parse(self, response):
