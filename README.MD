@@ -1,117 +1,183 @@
-#### 数据来源
+### 更新
 
-信息来自[中国注册会计师行业信息管理系统](https://cmispub.cicpa.org.cn/cicpa2_web/)和[财政会计行业管理系统](http://acc.mof.gov.cn)
+[中国注册会计师行业信息管理系统](https://cmispub.cicpa.org.cn/)竟然大改版了，索性直接删除了以前的爬虫。
 
-#### 逻辑
+反而感觉清爽了不少。数据保存在本地的mongodb\cicpa\cpa，要修改保存方式的话，修改pipeline即可。
 
-1. 从[财政会计行业管理系统](http://acc.mof.gov.cn)查询会计师事务所编号，通过会计师事务所编号在[中国注册会计师行业信息管理系统](https://cmispub.cicpa.org.cn/cicpa2_web/)发起请求，获取会计师事务所详情页面地址；
-2. 获取会计师事务所详情页面的信息，在详情页面找到从业人员和注册会计师列表入口，进入从业人员和注册会计师列表，有分所的继续去分所详情页面采集；
-3. 遍历从业人员和注册会计师列表，获取从业人员信息，获取注册会计师详情页面地址；
-4. 进入注册会计师详情页面，获取注册会计师个人信息。
+### 数据来源
 
-#### 存储
+信息来自[中国注册会计师行业信息管理系统](https://cmispub.cicpa.org.cn/)和[财政会计行业管理系统](http://acc.mof.gov.cn)
 
-使用scrapy框架自带的JsonLinesItemExporter，存储在当前目录的四个json文件中，分别是audit_firm（会计师事务所详情）、nwp_info（从业人员）、cpa_info（注册会计师简介）、cpa_profile（更为详细的注册会计师介绍）。
+### 逻辑
 
-#### 反反爬
+1. 从[财政会计行业管理系统](http://acc.mof.gov.cn)查询注册会计师列表
 
-使用了万变IP的代理ip，请求一个http代理列表，每次从列表中随机抽取一个proxy发起请求，当返回结果为403，或者返回其他错误时，删除当前使用的proxy，当列表删除为空时，请求一个新列表。
+   ![img1](Chinese-Auditors-Crawler1.png)
 
-> 这个ip需要你自己买，3块钱可以买两千个；在middlewares中设置proxy_api。
->
-> 如果你使用的不是万变IP，那还需要稍微修改下get_proxy_list()方法。
+2. 记录注册会计师的注师证书编号和地区，在[中国注册会计师行业信息管理系统](https://cmispub.cicpa.org.cn/)发起检索
 
-#### 数据样式
+   ![img2](Chinese-Auditors-Crawler2.png)
 
-##### Audit_firm
+   ```json
+   {
+       "result": 1,
+       "msg": "success",
+       "info": {
+           "headInfo": {
+               "id": "0000010f-849c-6e98-8abc-aecb9e70286e",
+               "recver": null,
+               "perCode": "100000510872",
+               "loginPass": null,
+               "perstateCode": null,
+               "ascId": null,
+               "offId": "0000010f-8496-8857-403f-a440bedd405c",
+               "offGuid": null,
+               "proId": null,
+               "proIdName": null,
+               "quatypeCode": "01",
+               "certNum": "04070097",
+               "certTime": "",
+               "testWord": "无",
+               "regPlace": "110000",
+               "regTime": "1996-01-10",
+               "regGov": null,
+               "regWord": "会协字（1996）10号",
+               "perName": "马永香",
+               "perPy": null,
+               "gender": "2",
+               "brithDate": "1963-03-24",
+               "nationCode": "01",
+               "nativePlace": null,
+               "polityCode": "03",
+               "idCard": "110108196303246040",
+               "retireCode": "01",
+               "addr": "北京市宣武区广安门内大街319号广信嘉园319号C座9C室",
+               "phone": null,
+               "phoneDecode": null,
+               "mobile": null,
+               "mobileDecode": null,
+               "post": null,
+               "email": "zzgkjss@public3.bta.net.cn",
+               "profeName": "高级会计师",
+               "progradeCode": "02",
+               "stuexpCode": "05",
+               "degreeCode": null,
+               "major": "工程管理",
+               "college": "华东石油学院",
+               "englishDegree": null,
+               "hukouPlace": null,
+               "workPlace": null,
+               "filesPlace": "北京市人才交流中心",
+               "unittypeCode": null,
+               "enterTime": "2000-12-22",
+               "beforeUnit": "中洲会计师事务所",
+               "photoId": null,
+               "offDuty": "无",
+               "cardType": null,
+               "isInchg": null,
+               "areaCode": "01",
+               "isSafety": null,
+               "safetyUnit": null,
+               "offName": "北京中之光会计师事务所有限责任公司",
+               "partner": null,
+               "parMoney": null,
+               "partnerOffId": null,
+               "genderName": null,
+               "quatypeCodeName": null,
+               "perstateCodeName": null,
+               "remark": null,
+               "reservr1": null,
+               "reservr2": null,
+               "reservr3": null,
+               "strAge": null,
+               "currentPage": null,
+               "pageSize": null,
+               "areaName": null,
+               "certNumOrtestWord": null,
+               "isOffNormal": null,
+               "quatypeDesc": null,
+               "agreeGov": null,
+               "agreeTime": "1996-01-10",
+               "isPartner": "0",
+               "offAllCode": null,
+               "startDate": null,
+               "endDate": null,
+               "idcardNull": null,
+               "nameNull": null,
+               "birthNull": null,
+               "quatypeNull": null,
+               "stuexpNull": null,
+               "certnumNull": null,
+               "regwordNull": null,
+               "certOrTest": null,
+               "isStock": "0",
+               "startRegTime": null,
+               "endRegTime": null,
+               "displayItems": null,
+               "offCode": null,
+               "flag": "-1",
+               "npaGuid": "",
+               "newPhotoName": "",
+               "npaPhotoName": "",
+               "perPhotoName": "",
+               "srcPhotoPath": "",
+               "targetFileDir": "",
+               "isNquery": 1,
+               "perGuids": null,
+               "remarks": null,
+               "parGuid": null,
+               "regWords": null,
+               "reasons": null,
+               "times": null,
+               "isReNew": null,
+               "isFzyReNew": null,
+               "isZfAllow": null,
+               "impRes": null,
+               "impRow": 0,
+               "timeLimitCode": "1",
+               "perstateValue": null,
+               "quatypeValue": null,
+               "genderValue": null,
+               "nationValue": null,
+               "polityValue": null,
+               "retireValue": null,
+               "progradeValue": null,
+               "stuexpValue": null,
+               "degreeValue": null,
+               "unittypeValue": null,
+               "agreeTimeValue": null,
+               "proName": "海淀区",
+               "isExport": 0,
+               "ljcsAnnual": "领军人才年份",
+               "cpaetAnnual": "英语测试年份",
+               "khbg": "客户及报告情况",
+               "ywcxs": "40",
+               "rzzg": "最后一次通过任职资格检查时间",
+               "wcxs": "0",
+               "cjcf": "0",
+               "gyhd": "0",
+               "policyValue": "否",
+               "tableName": null,
+               "officeTableName": null,
+               "searchYear": null,
+               "searchMonth": null,
+               "parition": null,
+               "startAge": null,
+               "endAge": null,
+               "zynxType": null,
+               "zynx": null,
+               "regDate1": null,
+               "regDate2": null,
+               "offType": null,
+               "orgmode": null,
+               "startBirthDate": null,
+               "endBirthDate": null,
+               "proGuid": null,
+               "twoascGuid": null,
+               "idCardDecode": null
+           }
+       }
+   }
+   ```
 
-> {
-> '主任会计师': '耿云明',
-> '从业人员人数': '21',
-> '从业人员人数（含分所）': '21',
-> '会计师事务所名称': '北京中之光会计师事务所有限责任公司',
-> '传真': '010-83131728',
-> '出资额或注册资本（万元）': '100.0',
-> '分所数量': '0',
-> '办公地址': '北京市海淀区北四环西路67号中关村创业大厦904室',
-> '加入国际网络': '无',
-> '博士研究生人数': '0',
-> '参与公益活动': '无',
-> '合伙人或股东人数': '4',
-> '境外分支机构': '无',
-> '处罚/惩戒信息(披露时限:自2017年至今)': '无',
-> '大专及以下人数': '5',
-> '大于70岁人数': '5',
-> '小于等于40岁人数': '1',
-> '小于等于60岁且大于40岁人数': '6',
-> '小于等于70岁且大于60岁人数': '2',
-> '批准设立文件号': '京财协（1996）1989号',
-> '批准设立时间': '1996-11-18',
-> '批准设立机关': '北京市财政局',
-> '是否具有内部培训资格': '否',
-> '本科人数': '8',
-> '法定代表人（或执行合伙人）': '耿云明',
-> '注册会计师人数': '14',
-> '注册会计师人数（含分所）': '14',
-> '电子邮箱': '635114023@qq.com',
-> '硕士研究生人数': '1',
-> '组织形式（有限/合伙）': '有限责任',
-> '继续教育完成率（上一年度）': '85.71%',
-> '网址': '无',
-> '联系人': '耿云明',
-> '联系电话': '13910222743',
-> '被检查信息': '请点击',
-> '证书编号': '11000001',
-> '通讯地址': '北京市海淀区北四环西路67号中关村创业大厦904室',
-> '邮政编码': '100053'
-> }
-
-##### Nwp_info
-
-> {
-> '姓名': '郑天一',
-> '序号': '20',
-> '性别': '女',
-> '所在事务所': '北京中之光会计师事务所有限责任公司（从业人员）',
-> '是否党员': '否',
-> '是否参加社保': '否',
-> '是否签合同': '是',
-> '进所时间': '2007-01-01'
-> }
-
-##### Cpa_info
-
-> {
-> '人员编号': '110000342374',
-> '全科合格证号（或者考核批准文号）': '鲁财会字〔1993〕第79号',
-> '出生日期': '1948-01-07',
-> '姓名': '刘家友',
-> '序号': '4',
-> '性别': '男',
-> '所在事务所': '北京中仁信会计师事务所（注册会计师）'
-> }
-
-##### Cpa_profile
-
-> {
-> '全科合格年份': '1997',
-> '全科合格证书号': 'A97070060',
-> '参加公益活动': '无',
-> '处罚/惩戒信息': '无',
-> '姓名': '李朝霞',
-> '学位': '其它',
-> '学历': '硕士',
-> '性别': '女',
-> '所内职务': '无',
-> '所在事务所': '北京驰创会计师事务所有限责任公司',
-> '所学专业': '矿产普查勘察',
-> '批准注册文件号': '京会协（2000）093号',
-> '批准注册时间': '2000-12-15',
-> '是否党员': '否',
-> '是否合伙人（股东）': '是',
-> '本年度已完成学时': '0',
-> '本年度应完成学时': '40',
-> '毕业学校': '中国地质大学',
-> '注册会计师证书编号': '110001332698',
-> '资格取得方式（考试/考核）': '考试'
-> }
+其实如果不想要这么详细的数据的话，在[财政会计行业管理系统](http://acc.mof.gov.cn)的请求里把pageSize设置成999999就可以一次把所有数据导出了，实际上我在start_requests里也是这么偷懒的，就是可能会牺牲一点性能吧。
